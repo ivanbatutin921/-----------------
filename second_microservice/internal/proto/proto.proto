@@ -1,0 +1,15 @@
+syntax = "proto3";
+option go_package = "./proto";
+
+package proto;
+
+service UserService{
+    rpc OutputUser(User) returns (Empty){}
+}
+
+message User{
+    string login = 1;
+    string password = 2;
+}
+
+message Empty{}
