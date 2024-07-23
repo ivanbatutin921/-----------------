@@ -4,7 +4,7 @@ option go_package = "./proto";
 package proto;
 
 service UserService{
-    rpc OutputUser(User) returns (Empty){}
+    rpc OutputUser(stream User) returns (stream User){}
 }
 
 message User{

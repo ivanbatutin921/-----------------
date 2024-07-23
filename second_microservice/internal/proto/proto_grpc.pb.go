@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	OutputUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error)
+	OutputUser(ctx context.Context, opts ...grpc.CallOption) (UserService_OutputUserClient, error)
 }
 
 type userServiceClient struct {
@@ -37,20 +37,42 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) OutputUser(ctx context.Context, in *User, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, UserService_OutputUser_FullMethodName, in, out, opts...)
+func (c *userServiceClient) OutputUser(ctx context.Context, opts ...grpc.CallOption) (UserService_OutputUserClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[0], UserService_OutputUser_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &userServiceOutputUserClient{stream}
+	return x, nil
+}
+
+type UserService_OutputUserClient interface {
+	Send(*User) error
+	Recv() (*User, error)
+	grpc.ClientStream
+}
+
+type userServiceOutputUserClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceOutputUserClient) Send(m *User) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *userServiceOutputUserClient) Recv() (*User, error) {
+	m := new(User)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
-	OutputUser(context.Context, *User) (*Empty, error)
+	OutputUser(UserService_OutputUserServer) error
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -58,8 +80,8 @@ type UserServiceServer interface {
 type UnimplementedUserServiceServer struct {
 }
 
-func (UnimplementedUserServiceServer) OutputUser(context.Context, *User) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method OutputUser not implemented")
+func (UnimplementedUserServiceServer) OutputUser(UserService_OutputUserServer) error {
+	return status.Errorf(codes.Unimplemented, "method OutputUser not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -74,22 +96,30 @@ func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
 	s.RegisterService(&UserService_ServiceDesc, srv)
 }
 
-func _UserService_OutputUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(User)
-	if err := dec(in); err != nil {
+func _UserService_OutputUser_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UserServiceServer).OutputUser(&userServiceOutputUserServer{stream})
+}
+
+type UserService_OutputUserServer interface {
+	Send(*User) error
+	Recv() (*User, error)
+	grpc.ServerStream
+}
+
+type userServiceOutputUserServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceOutputUserServer) Send(m *User) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *userServiceOutputUserServer) Recv() (*User, error) {
+	m := new(User)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).OutputUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_OutputUser_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).OutputUser(ctx, req.(*User))
-	}
-	return interceptor(ctx, in, info, handler)
+	return m, nil
 }
 
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
@@ -98,12 +128,14 @@ func _UserService_OutputUser_Handler(srv interface{}, ctx context.Context, dec f
 var UserService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.UserService",
 	HandlerType: (*UserServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "OutputUser",
-			Handler:    _UserService_OutputUser_Handler,
+			StreamName:    "OutputUser",
+			Handler:       _UserService_OutputUser_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "proto.proto",
 }
